@@ -22,13 +22,17 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-	printf("bits 16\n");
+	printf("bits 16\n\n");
 	
 	mov instruction;
     while (fread(&instruction.byte1, sizeof(instruction.byte1), 1, fp) == 1 && 
 		   fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp) == 1) {
         uint8_t mov_instruction = 0b100010;
 		if (((instruction.byte1 & 0b11111100) >> 2) == mov_instruction) {
+			
+			// NOTE(fz): For now we are assuming that the MOD bits equal 11, I.e., register to register op.
+			
+			// W Byte
 			char** register_table = ((instruction.byte1 & 0b00000001) == 0) ? byte_registers : word_registers;
 			uint8_t reg = ((instruction.byte2 & 0b00111000) >> 3);
 			uint8_t rm  = (instruction.byte2 & 0b00000111);
