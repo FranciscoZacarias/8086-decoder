@@ -2,7 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define LOW_8BITS(val) val & 0b0000000011111111
+#define LOW_8BITS(val) (val & 0b0000000011111111)
+#define HIGH_8BITS(val) (val & 0b1111111100000000)
 
 enum Operation_Code {
 	INVALID = 0b00000000,
@@ -57,11 +58,11 @@ void write_mov_rm_tofrom_reg_no_displacement(uint8_t reg_bits, uint8_t rm_bits, 
 
 // NOTE(fz): Here I'm passing the W (wide) value instead of the register table directly, because I'd still need to know
 // the size of the registers to put in the format specifier of printf...
-void write_mov_rm_tofrom_reg_with_displacement(uint8_t reg_bits, uint8_t rm_bits, uint8_t D_bit, uint8_t W, uint8_t data_size, uint16_t data) {
+void write_mov_rm_tofrom_reg_with_displacement(uint8_t reg_bits, uint8_t rm_bits, uint8_t D_bit, uint8_t W, uint16_t data) {
 	// NOTE(fz): W only specifies if registers are 8 or 16 bits. It's independent from the type of data we receive.
 	const char** register_table = (W) ? word_registers : byte_registers;
 	
-	if (data_size) {
+	if (HIGH_8BITS(data) > 0) {
 		if (!data) {
 			if (D_bit) {
 				printf("mov %s, %s]\n", register_table[reg_bits], address_calc[rm_bits]);
@@ -150,14 +151,14 @@ int main(int argc, char** argv) {
 					// Memory mode, 8 bit displacement
 					case 0b01: {
 						fread(&instruction.byte3, sizeof(instruction.byte3),  1, fp);
-						write_mov_rm_tofrom_reg_with_displacement(reg, rm, D, W, 0, instruction.byte3);
+						write_mov_rm_tofrom_reg_with_displacement(reg, rm, D, W, instruction.byte3);
 					} break;
 					
 					// Memory mode, 16 bit displacement
 					case 0b10: {
 						fread(&instruction.byte3, sizeof(instruction.byte3),  1, fp);
 						fread(&instruction.byte4, sizeof(instruction.byte4),  1, fp);
-						write_mov_rm_tofrom_reg_with_displacement(reg, rm, D, W, 1, ((instruction.byte4 << 8) | instruction.byte3));
+						write_mov_rm_tofrom_reg_with_displacement(reg, rm, D, W, ((instruction.byte4 << 8) | instruction.byte3));
 					} break;
 					
 					// Register Mode, no displacement
