@@ -27,7 +27,6 @@ const char* word_registers[8] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"}
 // NOTE(fz): Second map contains displacement.
 const char* address_calc[8] = {"[bx + si", "[bx + di", "[bp + si", "[bp + di", "[si", "[di", "[bp", "[bx"};
 
-
 Operation_Code get_operation_code(uint8_t byte) {
 	// NOTE(fz): Op codes always start from the upper bits
 	if (((byte & 0b11110000) >> 4) == MOV_IM_TO_REG)         return MOV_IM_TO_REG;
@@ -139,13 +138,19 @@ int main(int argc, char** argv) {
 				uint8_t reg = (instruction.byte2 & 0b00111000) >> 3;
 				uint8_t rm  = (instruction.byte2 & 0b00000111);
 				
+				const char** register_table = (W) ? word_registers : byte_registers;
 				switch(mod) {
 					
 					// Memory mode, no displacement
 					case 0b00: {
-						// TODO(fz): *Except when R/M = 110, then it's 16 bit displacement
-						const char** register_table = (W) ? word_registers : byte_registers;
-						write_mov_rm_tofrom_reg_no_displacement(reg, rm, D, register_table);
+						// NOTE(fz): We do this here instead of the function so we don't have to also pass it the file pointer.
+						if (rm == 0b110) {
+							fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
+							fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
+							printf("mov %s, [%hu]\n", word_registers[reg], (instruction.byte4 << 8) | instruction.byte3);
+						} else {
+							write_mov_rm_tofrom_reg_no_displacement(reg, rm, D, register_table);
+						}
 					} break;
 					
 					// Memory mode, 8 bit displacement
@@ -163,7 +168,6 @@ int main(int argc, char** argv) {
 					
 					// Register Mode, no displacement
 					case 0b11: {
-						const char** register_table = (W) ? word_registers : byte_registers;
 						write_mov_reg_to_reg(reg, rm, D, register_table);
 					} break;
 				}
