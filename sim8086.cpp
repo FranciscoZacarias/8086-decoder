@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// NOTE(fz): For 16 bit values, obviously.
 #define LOW_8BITS(val) (val & 0b0000000011111111)
 #define HIGH_8BITS(val) (val & 0b1111111100000000)
 
@@ -10,6 +11,7 @@ enum Operation_Code {
 	
 	// MOVs
 	MOV_REGMEM_TOFROM_REG = 0b100010,
+	MOV_IM_TO_REGMEM      = 0b1100011,
 	MOV_IM_TO_REG         = 0b1011,
 	
 };
@@ -19,6 +21,8 @@ struct Instruction {
 	uint8_t byte2;
 	uint8_t byte3;
 	uint8_t byte4;
+	uint8_t byte5;
+	uint8_t byte6;
 };
 
 const char* byte_registers[8] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"}; // W = 0, 8  bit registers
@@ -29,8 +33,9 @@ const char* address_calc[8] = {"[bx + si", "[bx + di", "[bp + si", "[bp + di", "
 
 Operation_Code get_operation_code(uint8_t byte) {
 	// NOTE(fz): Op codes always start from the upper bits
-	if (((byte & 0b11110000) >> 4) == MOV_IM_TO_REG)         return MOV_IM_TO_REG;
 	if (((byte & 0b11111100) >> 2) == MOV_REGMEM_TOFROM_REG) return MOV_REGMEM_TOFROM_REG;
+	if (((byte & 0b11111110) >> 1) == MOV_IM_TO_REGMEM)      return MOV_IM_TO_REGMEM;
+	if (((byte & 0b11110000) >> 4) == MOV_IM_TO_REG)         return MOV_IM_TO_REG;
 	
 	return INVALID;
 }
@@ -102,37 +107,24 @@ int main(int argc, char** argv) {
 
 	printf("bits 16\n\n");
 	
-    struct Instruction instruction = { 0, 0 ,0 ,0 };
+    struct Instruction instruction = { 0, 0 ,0 ,0, 0, 0 };
     while (fread(&instruction.byte1, sizeof(instruction.byte1), 1, fp) == 1) {
 		// TODO(fz): Clean this up. Make sure we keep the first byte, but we should clean the other ones.
 		instruction.byte2 = 0;
 		instruction.byte3 = 0;	
 		instruction.byte4 = 0;
+		instruction.byte5 = 0;
+		instruction.byte6 = 0;
 		
 		Operation_Code opcode = get_operation_code(instruction.byte1);
 		
 		switch(opcode) {
 			
-			case MOV_IM_TO_REG: {
-				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
-				
-				uint8_t W   = ((instruction.byte1 >> 3) & 1);
-				uint8_t reg = (instruction.byte1 & 0b00000111);
-				
-				if (W) {
-					fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
-					printf("mov %s, %hu\n", word_registers[reg], ((instruction.byte3 << 8) | instruction.byte2));
-				} else {
-					printf("mov %s, %hhu\n", byte_registers[reg], instruction.byte2 );
-				}
-				
-			} break;
-			
 			case MOV_REGMEM_TOFROM_REG: {
 				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
 				
-				uint8_t D = ((instruction.byte1 & 0b00000010) >> 1) & 1;
-				uint8_t W =  (instruction.byte1 & 0b00000001) & 1;
+				uint8_t D = ((instruction.byte1 & 0b00000010) >> 1);
+				uint8_t W =  (instruction.byte1 & 0b00000001);
 				
 				uint8_t mod = (instruction.byte2 & 0b11000000) >> 6;
 				uint8_t reg = (instruction.byte2 & 0b00111000) >> 3;
@@ -173,9 +165,55 @@ int main(int argc, char** argv) {
 				}
 			} break;
 			
+			case MOV_IM_TO_REGMEM: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				
+				uint8_t W = (instruction.byte1 & 0b00000001);
+				
+				uint8_t mod = (instruction.byte2 & 0b11000000) >> 6;
+				// NOTE(fz): REG is always 0b000
+				uint8_t rm  = (instruction.byte2 & 0b00000111);
+				
+				
+				// TODO(fz): This implementation is not thorough enough. It's only decoding 2 cases.
+				if (W) {
+					if (mod == 0b10) {
+						// NOTE(fz): 16 bit displacement
+						fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
+						fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
+						fread(&instruction.byte5, sizeof(instruction.byte5), 1, fp);
+						fread(&instruction.byte6, sizeof(instruction.byte6), 1, fp);
+						
+						uint16_t displacement = (instruction.byte4 << 8) | instruction.byte3;
+						uint16_t data         = (instruction.byte6 << 8) | instruction.byte5;
+						
+						printf("mov [%s + %hu], word %hu\n", word_registers[rm], displacement, data);
+					}
+				} else {
+					fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
+					printf("mov %s], byte %hhu\n", address_calc[rm], instruction.byte3);
+				}
+			} break;
+			
+			case MOV_IM_TO_REG: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				
+				uint8_t W   = ((instruction.byte1 >> 3) & 1);
+				uint8_t reg = (instruction.byte1 & 0b00000111);
+				
+				if (W) {
+					fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
+					printf("mov %s, %hu\n", word_registers[reg], ((instruction.byte3 << 8) | instruction.byte2));
+				} else {
+					printf("mov %s, %hhu\n", byte_registers[reg], instruction.byte2 );
+				}
+				
+			} break;
+			
+			
 			case INVALID: {
 				printf("Invalid instruction\n");
-			}break;
+			} break;
 		}
     }
 	
