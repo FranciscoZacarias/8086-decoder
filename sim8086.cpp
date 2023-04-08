@@ -174,7 +174,6 @@ int main(int argc, char** argv) {
 				// NOTE(fz): REG is always 0b000
 				uint8_t rm  = (instruction.byte2 & 0b00000111);
 				
-				
 				// TODO(fz): This implementation is not thorough enough. It's only decoding 2 cases.
 				if (W) {
 					if (mod == 0b10) {
