@@ -12,7 +12,7 @@ enum Operation_Code {
 	// MOVs
 	MOV_REGMEM_TOFROM_REG = 0b100010,
 	MOV_IM_TO_REGMEM      = 0b1100011,
-	MOV_IM_TO_REG         = 0b1011,
+	MOV_IM_TO_REG         = 0b1011
 	
 };
 
