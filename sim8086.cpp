@@ -29,6 +29,30 @@ enum Operation_Code {
 	
 	ART_IM_WITH_REGMEM            = 0b100000, // Aritmetic op encoded in REG field
 	
+	// Conditional Jumps
+	
+	JNZ = 0b01110101,
+	JE  = 0b01110100,
+	JL  = 0b01111100,
+	JLE = 0b01111110,
+	JB  = 0b01110010,
+	JBE = 0b01110110,
+	JP  = 0b01111010,
+	JO  = 0b01110000,
+	JS  = 0b01111000,
+	JNL = 0b01111101,
+	JG  = 0b01111111,
+	JNB = 0b01110011,
+	JA  = 0b01110111,
+	JNP = 0b01111011,
+	JNO = 0b01110001,
+	JNS = 0b01111001,
+	
+	LOOP   = 0b11100010,
+	LOOPZ  = 0b11100001,
+	LOOPNZ = 0b11100000,
+	JCXZ   = 0b11100011,
+	
 	INVALID = 0b11111111,
 };
 
@@ -54,24 +78,47 @@ void print_byte(u8 byte) {
 }
 
 Operation_Code get_operation_code(u8 byte) {
-	// NOTE(fz): Op codes always start from the upper bits
-	if (((byte & 0b11111100) >> 2) == MOV_REGMEM_TOFROM_REG) return MOV_REGMEM_TOFROM_REG;
-	if (((byte & 0b11111110) >> 1) == MOV_IM_TO_REGMEM)      return MOV_IM_TO_REGMEM;
-	if (((byte & 0b11110000) >> 4) == MOV_IM_TO_REG)         return MOV_IM_TO_REG;
-	
-	if (((byte & 0b11111100) >> 2) == ADD_REGMEM_WITH_REG_TO_EITHER) return ADD_REGMEM_WITH_REG_TO_EITHER;
-	if (((byte & 0b11111110) >> 1) == ADD_IM_TO_ACC)                 return ADD_IM_TO_ACC;
-	
-	if (((byte & 0b11111100) >> 2) == SUB_REGMEM_WITH_REG_TO_EITHER) return SUB_REGMEM_WITH_REG_TO_EITHER;
-	if (((byte & 0b11111110) >> 1) == SUB_IM_TO_ACC)                 return SUB_IM_TO_ACC;
-	
-	if (((byte & 0b11111100) >> 2) == CMP_REGMEM_WITH_REG_TO_EITHER) return CMP_REGMEM_WITH_REG_TO_EITHER;
-	if (((byte & 0b11111110) >> 1) == CMP_IM_TO_ACC)                 return CMP_IM_TO_ACC;
-	
-	if (((byte & 0b11111100) >> 2) == ART_IM_WITH_REGMEM)    return ART_IM_WITH_REGMEM; 
-	
-	return INVALID;
+    // NOTE: Op codes always start from the upper bits
+    if (((byte & 0b11111100) >> 2) == MOV_REGMEM_TOFROM_REG) return MOV_REGMEM_TOFROM_REG;
+    if (((byte & 0b11111110) >> 1) == MOV_IM_TO_REGMEM)      return MOV_IM_TO_REGMEM;
+    if (((byte & 0b11110000) >> 4) == MOV_IM_TO_REG)         return MOV_IM_TO_REG;
+    
+    if (((byte & 0b11111100) >> 2) == ADD_REGMEM_WITH_REG_TO_EITHER) return ADD_REGMEM_WITH_REG_TO_EITHER;
+    if (((byte & 0b11111110) >> 1) == ADD_IM_TO_ACC)                 return ADD_IM_TO_ACC;
+    
+    if (((byte & 0b11111100) >> 2) == SUB_REGMEM_WITH_REG_TO_EITHER) return SUB_REGMEM_WITH_REG_TO_EITHER;
+    if (((byte & 0b11111110) >> 1) == SUB_IM_TO_ACC)                 return SUB_IM_TO_ACC;
+    
+    if (((byte & 0b11111100) >> 2) == CMP_REGMEM_WITH_REG_TO_EITHER) return CMP_REGMEM_WITH_REG_TO_EITHER;
+    if (((byte & 0b11111110) >> 1) == CMP_IM_TO_ACC)                 return CMP_IM_TO_ACC;
+    
+    if (((byte & 0b11111100) >> 2) == ART_IM_WITH_REGMEM)    return ART_IM_WITH_REGMEM; 
+    
+    if (byte == 0b01110101) return JNZ;
+    if (byte == 0b01110100) return JE;
+    if (byte == 0b01111100) return JL;
+    if (byte == 0b01111110) return JLE;
+    if (byte == 0b01110010) return JB;
+    if (byte == 0b01110110) return JBE;
+    if (byte == 0b01111010) return JP;
+    if (byte == 0b01110000) return JO;
+    if (byte == 0b01111000) return JS;
+    if (byte == 0b01111101) return JNL;
+    if (byte == 0b01111111) return JG;
+    if (byte == 0b01110011) return JNB;
+    if (byte == 0b01110111) return JA;
+    if (byte == 0b01111011) return JNP;
+    if (byte == 0b01110001) return JNO;
+    if (byte == 0b01111001) return JNS;
+    
+    if (byte == 0b11100010) return LOOP;
+    if (byte == 0b11100001) return LOOPZ;
+    if (byte == 0b11100000) return LOOPNZ;
+    if (byte == 0b11100011) return JCXZ;
+    
+    return INVALID;
 }
+
 
 // NOTE(fz):
 // D = 0, Instruction source      is specified in the REG field
@@ -401,6 +448,109 @@ int main(int argc, char** argv) {
 					} break;
 				}
 			} break;
+			
+			
+			
+			case JNZ: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jnz %hhd\n", instruction.byte2);
+			} break;
+			
+			case JE: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("je %hhd\n", instruction.byte2);
+			} break;
+			
+			case JL: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jl %hhd\n", instruction.byte2);
+			} break;
+			
+			case JLE: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jle %hhd\n", instruction.byte2);
+			} break;
+			
+			case JB: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jb %hhd\n", instruction.byte2);
+			} break;
+			
+			case JBE: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jbe %hhd\n", instruction.byte2);
+			} break;
+			
+			case JP: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jp %hhd\n", instruction.byte2);
+			} break;
+			
+			case JO: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jo %hhd\n", instruction.byte2);
+			} break;
+			
+			case JS: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("js %hhd\n", instruction.byte2);
+			} break;
+			
+			case JNL: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jnl %hhd\n", instruction.byte2);
+			} break;
+			
+			case JG : {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jg %hhd\n", instruction.byte2);
+			} break;
+			
+			case JNB: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jnb %hhd\n", instruction.byte2);
+			} break;
+			
+			case JA : {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("ja %hhd\n", instruction.byte2);
+			} break;
+			
+			case JNP: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jnp %hhd\n", instruction.byte2);
+			} break;
+			
+			case JNO: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jno %hhd\n", instruction.byte2);
+			} break;
+			
+			case JNS: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jns %hhd\n", instruction.byte2);
+			} break;
+			
+			case LOOP: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("loop %hhd\n", instruction.byte2);
+			} break;
+			
+			case LOOPZ: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("loopz %hhd\n", instruction.byte2);
+			} break;
+			
+			case LOOPNZ: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("loopnz %hhd\n", instruction.byte2);
+			} break;
+			
+			case JCXZ: {
+				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
+				printf("jcxz %hhd\n", instruction.byte2);
+			} break;				
+			
 			
 			case INVALID: {
 				printf("\nInvalid instruction: ");
