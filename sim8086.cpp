@@ -20,10 +20,13 @@ enum Operation_Code {
 	// Aritmetic (ADD, SUB, CMP)
 	ADD_REGMEM_WITH_REG_TO_EITHER = 0b000000,
 	ADD_IM_TO_ACC                 = 0b0000010,
+	
 	SUB_REGMEM_WITH_REG_TO_EITHER = 0b001010,
 	SUB_IM_TO_ACC                 = 0b0010110,
-	CMP_REGMEM_AND_REG            = 0b001110,
+	
+	CMP_REGMEM_WITH_REG_TO_EITHER = 0b001110,
 	CMP_IM_TO_ACC                 = 0b0011110,
+	
 	ART_IM_WITH_REGMEM            = 0b100000, // Aritmetic op encoded in REG field
 	
 	INVALID = 0b11111111,
@@ -59,6 +62,12 @@ Operation_Code get_operation_code(u8 byte) {
 	if (((byte & 0b11111100) >> 2) == ADD_REGMEM_WITH_REG_TO_EITHER) return ADD_REGMEM_WITH_REG_TO_EITHER;
 	if (((byte & 0b11111110) >> 1) == ADD_IM_TO_ACC)                 return ADD_IM_TO_ACC;
 	
+	if (((byte & 0b11111100) >> 2) == SUB_REGMEM_WITH_REG_TO_EITHER) return SUB_REGMEM_WITH_REG_TO_EITHER;
+	if (((byte & 0b11111110) >> 1) == SUB_IM_TO_ACC)                 return SUB_IM_TO_ACC;
+	
+	if (((byte & 0b11111100) >> 2) == CMP_REGMEM_WITH_REG_TO_EITHER) return CMP_REGMEM_WITH_REG_TO_EITHER;
+	if (((byte & 0b11111110) >> 1) == CMP_IM_TO_ACC)                 return CMP_IM_TO_ACC;
+	
 	if (((byte & 0b11111100) >> 2) == ART_IM_WITH_REGMEM)    return ART_IM_WITH_REGMEM; 
 	
 	return INVALID;
@@ -85,15 +94,21 @@ void write_rm_tofrom_reg_no_displacement(const char instruction[3], u8 reg_bits,
 }
 
 // NOTE(fz): Immediate wide should be either 1(16bit) or 0(8bit)
-void write_rm_tofrom_immediate(const char instruction[3], u8 rm_bits, u8 W_bit, u16 displacement, u16 immediate) {
+void write_rm_tofrom_immediate(const char instruction[3], u8 mod_bits, u8 rm_bits, u8 W_bit, u16 displacement, u16 immediate) {
+	u8 direct_address = (mod_bits == 0b00 && rm_bits == 0b110);
+	
 	if(W_bit) {
-		if (displacement) {
+		if (direct_address) {	
+			printf("%s word [%hu], %hu\n", instruction, displacement, immediate);
+		} else if (displacement) {
 			printf("%s word %s + %hu], %hu\n", instruction, address_calc[rm_bits], displacement, immediate);
 		} else {
 			printf("%s word %s], %hu\n", instruction, address_calc[rm_bits], immediate);
 		}
 	} else {
-		if (displacement) {
+		if (direct_address) {	
+			printf("%s byte [%hhu], %hhu\n", instruction, displacement, immediate);
+		} else if (displacement) {
 			printf("%s byte %s + %hhu], %hhu\n", instruction, address_calc[rm_bits], displacement, LOW_8BITS(immediate));
 		} else {
 			printf("%s byte %s], %hhu\n", instruction, address_calc[rm_bits], LOW_8BITS(immediate));
@@ -248,7 +263,9 @@ int main(int argc, char** argv) {
 				
 			} break;
 			
-			case ADD_REGMEM_WITH_REG_TO_EITHER: {
+			case ADD_REGMEM_WITH_REG_TO_EITHER: 
+			case SUB_REGMEM_WITH_REG_TO_EITHER:
+			case CMP_REGMEM_WITH_REG_TO_EITHER: {
 				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
 				
 				u8 D = ((instruction.byte1 & 0b00000010) >> 1);
@@ -258,24 +275,25 @@ int main(int argc, char** argv) {
 				u8 reg = (instruction.byte2 & 0b00111000) >> 3;
 				u8 rm  = (instruction.byte2 & 0b00000111);
 				
+				u8 operation_code = (instruction.byte1 & 0b00111000) >> 3;
+				const char* operation = (operation_code == 0b000) ? "add" : (operation_code == 0b101) ? "sub" : "cmp";
+				
 				const char** register_table = (W) ? word_registers : byte_registers;
 				switch(mod) {
-					// write_rm_tofrom_reg_no_displacement(const char instruction[3], u8 reg_bits, u8 rm_bits, u8 D_bit, const char** register_table)
-					
 					case 0b00: {
 						if (rm == 0b110) {
 							fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
 							fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
-							printf("add %s, [%hu]\n", word_registers[reg], (instruction.byte4 << 8) | instruction.byte3);
+							printf("%s %s, [%hu]\n", operation, word_registers[reg], (instruction.byte4 << 8) | instruction.byte3);
 						} else {
-							write_rm_tofrom_reg_no_displacement("add", reg, rm, D, register_table);
+							write_rm_tofrom_reg_no_displacement(operation, reg, rm, D, register_table);
 						}
 					} break;
 					
 					// 8 bit displacement
 					case 0b01: {
 						fread(&instruction.byte3, sizeof(instruction.byte3),  1, fp);
-						write_rm_tofrom_reg_with_displacement("add", reg, rm, D, W, instruction.byte3);
+						write_rm_tofrom_reg_with_displacement(operation, reg, rm, D, W, instruction.byte3);
 					} break;
 					
 					// 16 bit displacement
@@ -283,25 +301,30 @@ int main(int argc, char** argv) {
 						fread(&instruction.byte3, sizeof(instruction.byte3),  1, fp);
 						fread(&instruction.byte4, sizeof(instruction.byte4),  1, fp);
 						u16 displacement = ((instruction.byte4 << 8) | instruction.byte3);
-						write_rm_tofrom_reg_with_displacement("add", reg, rm, D, W, displacement);
+						write_rm_tofrom_reg_with_displacement(operation, reg, rm, D, W, displacement);
 					} break;
 					
 					case 0b11: {
-						write_reg_to_reg("add", reg, rm, D, register_table);
+						write_reg_to_reg(operation, reg, rm, D, register_table);
 					} break;
 				}
 			} break;
 			
-			case ADD_IM_TO_ACC: {
+			case ADD_IM_TO_ACC: 
+			case SUB_IM_TO_ACC:
+			case CMP_IM_TO_ACC: {
 				fread(&instruction.byte2, sizeof(instruction.byte2), 1, fp);
 				u8 W = (instruction.byte1 & 0b00000001);
+				
+				u8 operation_code = (instruction.byte1 & 0b00111000) >> 3;
+				const char* operation = (operation_code == 0b000) ? "add" : (operation_code == 0b101) ? "sub" : "cmp";
 				
 				if (W) {
 					fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
 					u16 data = (instruction.byte3 << 8) | instruction.byte2;
-					printf("add ax, %hu\n", data);
+					printf("%s ax, %hu\n", operation, data);
 				} else {
-					printf("add al, %hhu\n", instruction.byte2);
+					printf("%s al, %hhu\n", operation, instruction.byte2);
 				}
 			} break;
 			
@@ -315,6 +338,7 @@ int main(int argc, char** argv) {
 				u8 reg = (instruction.byte2 & 0b00111000) >> 3;
 				u8 rm  = (instruction.byte2 & 0b00000111);
 				
+				const char* operation = (reg == 0b000) ? "add" : (reg == 0b101) ? "sub" : "cmp";
 				// TODO(fz): SWitch through REG values to get operation, now it's just hardcoded ADD
 				
 				const char** register_table = (W) ? word_registers : byte_registers;
@@ -326,20 +350,20 @@ int main(int argc, char** argv) {
 							fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
 							
 							fread(&instruction.byte5, sizeof(instruction.byte5), 1, fp);
-							if (W)  fread(&instruction.byte6, sizeof(instruction.byte6), 1, fp);
+							if (W == 0 && S == 1)  fread(&instruction.byte6, sizeof(instruction.byte6), 1, fp);
 							
 							u16 displacement = instruction.byte4 << 8 | instruction.byte3;
 							u16 data         = instruction.byte6 << 8 | instruction.byte5;
 							
-							write_rm_tofrom_immediate("add", rm, W, displacement, data);
+							write_rm_tofrom_immediate(operation, mod, rm, W, displacement, data);
 						} else {
 							// No displacement							
 							fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
-							if (W)  fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
+							if (W == 1 && S == 0)  fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
 							
 							u16 data = instruction.byte4 << 8 | instruction.byte3;
 							
-							write_rm_tofrom_immediate("add", rm, W, 0, data);
+							write_rm_tofrom_immediate(operation, mod, rm, W, 0, data);
 						}
 					} break;
 					
@@ -348,11 +372,11 @@ int main(int argc, char** argv) {
 						fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
 						
 						fread(&instruction.byte4, sizeof(instruction.byte4), 1, fp);
-						if (W)  fread(&instruction.byte5, sizeof(instruction.byte5), 1, fp);
+						if (W == 0 && S == 1)  fread(&instruction.byte5, sizeof(instruction.byte5), 1, fp);
 						
 						u16 data = instruction.byte5 << 8 | instruction.byte4;
 						
-						write_rm_tofrom_immediate("add", rm, W, instruction.byte3, data);
+						write_rm_tofrom_immediate(operation, mod, rm, W, instruction.byte3, data);
 					} break;
 					
 					// 16 bit displacement
@@ -366,14 +390,14 @@ int main(int argc, char** argv) {
 						
 						u16 displacement = instruction.byte4 << 8 | instruction.byte3;
 						u16 data         = instruction.byte6 << 8 | instruction.byte5;
-						
-						write_rm_tofrom_immediate("add", rm, W, displacement, data);
+							
+						write_rm_tofrom_immediate(operation, mod, rm, W, displacement, data);
 					} break;
 					
 					// No displacement
 					case 0b11: {
 						fread(&instruction.byte3, sizeof(instruction.byte3), 1, fp);
-						printf("add %s, %hhu\n", register_table[rm], instruction.byte3);
+						printf("%s %s, %hhu\n", operation, register_table[rm], instruction.byte3);
 					} break;
 				}
 			} break;
