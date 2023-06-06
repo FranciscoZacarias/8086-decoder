@@ -5,4 +5,4 @@ if not defined VCVARS_RAN (
     call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
 )
 
-cl.exe /EHsc /I "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\include" sim8086.cpp
+cl.exe /EHsc /I "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\include" sim86.cpp
