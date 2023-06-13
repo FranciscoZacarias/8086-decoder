@@ -1,12 +1,19 @@
 #include "sim86.h"
 
-void decode(Memory* memory, u32 byte_count, SegmentedAccess start_position) {
+#include "Memory.h"
+#include "Decoder.h"
+
+#include "Memory.cpp"
+#include "Decoder.cpp"
+
+void run_decoder(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
+	SegmentedAccess position = startPosition;
+	u32 bytesLeft            = byteCount;
 	
-	SegmentedAccess position = start_position;
-	u32 bytes_left           = byte_count;
-	
-	while(bytes_left) {
+	while(bytesLeft) {
+		Instruction instruction = decode_instruction(memory, &position);
 		
+		break;
 	}
 }
 
@@ -16,13 +23,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 	
-	Memory* memory = (Memory*)malloc(sizeof(memory));
-	FILE* output_file = stdout;
+	Memory* memory = (Memory*)malloc(sizeof(Memory));
 	
 	for(int i = 1; i < argc; i++) {
-		u32 bytes_read = load_file(memory, argv[i]);		
-		decode(memory, output_file, bytes_read);
+		u32 bytesRead = load_file_to_memory(memory, argv[i], 0);		
+		run_decoder(memory, bytesRead, { 0, 0 });
 	}
 	
+	free(memory);
 	return 0;
 }
