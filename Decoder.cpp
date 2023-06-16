@@ -110,6 +110,10 @@ Instruction try_decode(Memory* memory, SegmentedAccess access, InstructionFormat
 		instruction.address   = startAddress;
 		instruction.size      = get_absolute_address(access) - startAddress;
 		
+		if (W) {
+			instruction.flags |= Inst_Wide;
+		}
+		
 		s16 displacement = (s16)(bits[Bits_Disp]);
 		
 		InstructionOperand *regOperand = &instruction.operands[D ? 0 : 1];

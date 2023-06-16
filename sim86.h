@@ -27,6 +27,10 @@ enum OperationType {
 	OP_count
 };
 
+enum InstructionFlags
+{
+    Inst_Wide    = (1 << 0),
+};
 
 enum EffectiveAddressBase {
 	EffectiveAddressBase_DirectAddress,
@@ -51,6 +55,8 @@ enum OperandType {
 };
 
 enum Register {
+	Register_None,
+	
 	// A, B, C, D are also 16 bit registers.
 	// X suffix means the whole 16bit register
 	// L suffix is lower 8 bits
@@ -91,7 +97,7 @@ struct InstructionOperand {
 	OperandType type;
 	
 	union {
-		EffectiveAddressCalculation address;
+		EffectiveAdressExpression address;
 		RegisterAccess register_access;
 		u32 uImmediate;
 		s32 sImmediate;
@@ -103,6 +109,7 @@ struct Instruction {
 	u32 size;
 	
 	OperationType operation;
+	u32 flags;
 	
 	InstructionOperand operands[2];
 };
