@@ -79,14 +79,22 @@ struct RegisterAccess {
 	u8 count;  // How many bytes to read from the offset
 };
 
+
+struct EffectiveAdressExpression {
+	Register segment; // TODO REMOVE
+	EffectiveAddressBase base;
+	s32 displacement;
+};
+
+
 struct InstructionOperand {
 	OperandType type;
 	
 	union {
 		EffectiveAddressCalculation address;
 		RegisterAccess register_access;
-		u32 unsigend_immediate;
-		s32 signed_immediate;
+		u32 uImmediate;
+		s32 sImmediate;
 	};
 };
 
