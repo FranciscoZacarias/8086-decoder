@@ -114,7 +114,8 @@ Instruction try_decode(Memory* memory, SegmentedAccess access, InstructionFormat
 			instruction.flags |= Inst_Wide;
 		}
 		
-		s16 displacement = (s16)(bits[Bits_Disp]);
+		u32 disp = bits[Bits_Disp];
+        s16 displacement = (s16)disp;
 		
 		InstructionOperand *regOperand = &instruction.operands[D ? 0 : 1];
 		InstructionOperand *modOperand = &instruction.operands[D ? 1 : 0];
