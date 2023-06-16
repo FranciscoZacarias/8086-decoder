@@ -4,8 +4,7 @@ InstructionFormat instruction_formats[] =
 };
 
 InstructionOperand get_reg_operand(u32 intelRegIndex, b32 wide) {
-	RegisterAccess regTable[][2] =
-    {
+	RegisterAccess regTable[][2] = {
         {{Register_A, 0, 1}, {Register_A,  0, 2}},
         {{Register_C, 0, 1}, {Register_C,  0, 2}},
         {{Register_D, 0, 1}, {Register_D,  0, 2}},

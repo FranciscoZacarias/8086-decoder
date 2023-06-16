@@ -1,7 +1,6 @@
 #include "Text.h"
 
-char const *opcodeMnemonics[] =
-{
+char const *opcodeMnemonics[] = {
     "",
 	
 #define INSTRUCTION(Mnemonic, ...) #Mnemonic,
@@ -9,16 +8,13 @@ char const *opcodeMnemonics[] =
 #include "instruction_table.inl"
 };
 
-char const *get_mnemonic(OperationType op)
-{
+char const *get_mnemonic(OperationType op) {
     char const *mnemonic = opcodeMnemonics[op];
     return mnemonic;
 }
 
-char const *get_reg_name(RegisterAccess access)
-{
-    char const *names[][3] =
-    {
+char const *get_reg_name(RegisterAccess access) {
+    char const *names[][3] = {
         {"", "", ""},
         {"al", "ah", "ax"},
         {"bl", "bh", "bx"},
@@ -35,10 +31,8 @@ char const *get_reg_name(RegisterAccess access)
     return name;
 }
 
-char const *get_effective_address_expression(EffectiveAdressExpression address)
-{
-    char const *RMBase[] =
-    {
+char const *get_effective_address_expression(EffectiveAdressExpression address) {
+    char const *RMBase[] = {
         "",
         "bx+si",
         "bx+di",
@@ -90,13 +84,11 @@ void print_instruction(Instruction instruction, FILE* file) {
                     fprintf(file, "]");
                 } break;
                 
-                case OperandType_Immediate:
-                {
+                case OperandType_Immediate: {
                     fprintf(file, "%d", operand.sImmediate);
                 } break;
                 
-                case OperandType_RelativeImmediate:
-                {
+                case OperandType_RelativeImmediate: {
                     fprintf(file, "$%+d", operand.sImmediate);
                 } break;
             }

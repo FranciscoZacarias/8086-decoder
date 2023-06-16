@@ -1,5 +1,4 @@
-enum InstructionBitsUsage : u8
-{
+enum InstructionBitsUsage : u8 {
     Bits_Literal,
     Bits_MOD,
     Bits_REG,
