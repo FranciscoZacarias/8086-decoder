@@ -3,15 +3,24 @@
 #include "Memory.h"
 #include "Text.h"
 #include "Decoder.h"
-
+#include "Simulation.h"
 
 #include "Memory.cpp"
 #include "Text.cpp"
 #include "Decoder.cpp"
+#include "Simulation.cpp"
 
-void run_decoder(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
+b32 execute = 0;
+
+Memory* memory;
+
+SimRegister simulatedRegisters[Register_count];
+
+void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 	SegmentedAccess position = startPosition;
 	u32 bytesLeft            = byteCount;
+	
+	printf("bits 16\n");
 	
 	while(bytesLeft) {
 		Instruction instruction = decode_instruction(memory, &position);
@@ -27,27 +36,48 @@ void run_decoder(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 		} 
 		
 		bytesLeft -= instruction.size;
+		
 		print_instruction(instruction, stdout);
+		if (execute) {
+			simulate_instruction(simulatedRegisters, instruction, stdout);
+		}
+		
 		printf("\n");
 	}
 }
 
-int main(int argc, char** argv) {	
+int main(int argc, char** argv) {
     if (argc < 2) {
         printf("Usage: %s filename\n", argv[0]);
         return 1;
     }
 	
-	Memory* memory = (Memory*)malloc(sizeof(Memory));
+	if (argc > 2) {
+		for(int i = 1; i < argc; i++) {
+			if (argv[i][0] != '-')  continue;
+			
+			if (strcmp((const char*)argv[i], "-exec") == 0) {
+				execute = 1;
+			} else {
+				fprintf(stderr, "ERROR: Unknown option %s\n", argv[2]);
+				return 1;
+			}
+		}
+	}
+	
+	memory = (Memory*)malloc(sizeof(Memory));
 	
 	for(int i = 1; i < argc; i++) {
+		if (argv[i][0] == '-')  continue;
+		
+		printf("\n; %s disassembly:\n", argv[i]);
+		
 		u32 bytesRead = load_file_to_memory(memory, argv[i], 0);		
 
-		printf("\n; %s disassembly:\n", argv[i]);
-		printf("bits 16\n");
-		run_decoder(memory, bytesRead, { 0, 0 });
+		run_sim8086(memory, bytesRead, { 0, 0 });
 	}
 	
 	free(memory);
+	
 	return 0;
 }

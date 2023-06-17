@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #define ArrayCount(array) (sizeof(array) / sizeof(array[0]))
@@ -27,8 +28,7 @@ enum OperationType {
 	OP_count
 };
 
-enum InstructionFlags
-{
+enum InstructionFlags {
     Inst_Wide    = (1 << 0),
 };
 
@@ -85,13 +85,16 @@ struct RegisterAccess {
 	u8 count;  // How many bytes to read from the offset
 };
 
+enum RegisterData {
+	RegisterData_LOW = 0,
+	RegisterData_HIGH,
+};
 
 struct EffectiveAdressExpression {
 	Register segment; // TODO REMOVE
 	EffectiveAddressBase base;
 	s32 displacement;
 };
-
 
 struct InstructionOperand {
 	OperandType type;
