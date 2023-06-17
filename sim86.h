@@ -81,8 +81,8 @@ struct EffectiveAddressCalculation {
 
 struct RegisterAccess {
 	Register reg;
-	u8 offset; // How many bytes into the register to read from
-	u8 count;  // How many bytes to read from the offset
+	u8 offset; // How many bytes into the register
+	u8 count;  // How many bytes from the offset
 };
 
 enum RegisterData {

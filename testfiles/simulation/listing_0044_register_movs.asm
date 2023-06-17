@@ -30,3 +30,18 @@ mov dx, sp
 mov cx, bp
 mov bx, si
 mov ax, di
+
+mov ax, 0
+mov bx, 0
+mov cx, 0
+mov dx, 0
+
+mov ax, 0x2222
+mov bx, 0x4444
+mov cx, 0x6666
+mov dx, 0x8888
+
+mov al, 0x11
+mov bh, 0x33
+mov cl, 0x55
+mov dh, 0x77

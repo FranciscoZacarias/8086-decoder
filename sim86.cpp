@@ -65,6 +65,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	
+	for(int i = 0; i < Register_count; i++) {
+		SimRegister sr = { (Register)i, 0 };
+		simulatedRegisters[i] = sr;
+	}
+	
 	memory = (Memory*)malloc(sizeof(Memory));
 	
 	for(int i = 1; i < argc; i++) {
