@@ -90,8 +90,16 @@ enum RegisterData {
 	RegisterData_HIGH,
 };
 
+struct SimulatedRegister {
+	Register reg;
+	
+	union {
+		u8  data8[2];
+		u16 data16;
+	};
+};
+
 struct EffectiveAdressExpression {
-	Register segment; // TODO REMOVE
 	EffectiveAddressBase base;
 	s32 displacement;
 };
