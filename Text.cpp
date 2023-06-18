@@ -24,6 +24,7 @@ char const *get_reg_name(RegisterAccess access) {
         {"bp", "bp", "bp"},
         {"si", "si", "si"},
         {"di", "di", "di"},
+        {"flags", "flags", "flags"},
     };
     static_assert(ArrayCount(names) == Register_count, "Text table mismatch for register_index");
 	

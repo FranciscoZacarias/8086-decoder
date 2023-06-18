@@ -1,0 +1,2 @@
+@echo off
+build\sim86_msvc_release.exe -exec testfiles\simulation\listing_0043_immediate_movs testfiles\simulation\listing_0044_register_movs testfiles\simulation\listing_0046_add_sub_cmp

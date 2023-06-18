@@ -10,6 +10,19 @@
 #include "Decoder.cpp"
 #include "Simulation.cpp"
 
+char const *registrs[] = {
+	{""},
+	{"AX"},
+	{"BX"},
+	{"CX"},
+	{"DX"},
+	{"SP"},
+	{"BP"},
+	{"SI"},
+	{"DI"},
+	{"Flags"},
+};
+
 b32 execute = 0;
 
 Memory* memory;
@@ -44,6 +57,21 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 		
 		printf("\n");
 	}
+	
+	printf("Final Registers:");
+	for(int i = 1; i < Register_count; i++) {
+		if (simulatedRegisters[i].reg == Register_Flags) {
+			printf("\tFlags: ");
+			for(int j = 0; j < 8; j++) {
+				printf("%c", (simulatedRegisters[i].data16 >> j) & 1 ? '1' : '0');
+			}
+			printf(" (%d)", simulatedRegisters[i].data16);
+			continue;
+		}
+		printf("\t%s: 0x%04hx (%d)\n", registrs[i], simulatedRegisters[i].data16, simulatedRegisters[i].data16);
+	}
+	
+	printf("\n");
 }
 
 int main(int argc, char** argv) {

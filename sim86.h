@@ -32,6 +32,11 @@ enum InstructionFlags {
     Inst_Wide    = (1 << 0),
 };
 
+enum RegisterFlags {
+	Reg_ZeroFlag   = (1 << 6),
+	Reg_SignedFlag = (1 << 7),
+};
+
 enum EffectiveAddressBase {
 	EffectiveAddressBase_DirectAddress,
 	EffectiveAddressBase_BX_SI,
@@ -70,6 +75,8 @@ enum Register {
 	Register_BP,
 	Register_SI,
 	Register_DI,
+	
+	Register_Flags,
 	
 	Register_count,
 };
