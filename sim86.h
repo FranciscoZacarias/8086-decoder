@@ -20,11 +20,11 @@ typedef uint32_t b32;
 
 enum OperationType {
 	OP_none,
-	
+
 #define INSTRUCTION(Mnemonic, ...) OP_##Mnemonic,
 #define INSTRUCTION_ALT(...)
 #include "instruction_table.inl"
-	
+
 	OP_count
 };
 
@@ -47,7 +47,7 @@ enum EffectiveAddressBase {
 	EffectiveAddressBase_DI,
 	EffectiveAddressBase_BP,
 	EffectiveAddressBase_BX,
-	
+
 	EffectiveAddressBase_count,
 };
 
@@ -61,7 +61,7 @@ enum OperandType {
 
 enum Register {
 	Register_None,
-	
+
 	// A, B, C, D are also 16 bit registers.
 	// X suffix means the whole 16bit register
 	// L suffix is lower 8 bits
@@ -70,14 +70,14 @@ enum Register {
 	Register_B,
 	Register_C,
 	Register_D,
-	
+
 	Register_SP,
 	Register_BP,
 	Register_SI,
 	Register_DI,
-	
+
 	Register_Flags,
-	
+
 	Register_count,
 };
 
@@ -99,7 +99,7 @@ enum RegisterData {
 
 struct SimulatedRegister {
 	Register reg;
-	
+
 	union {
 		u8  data8[2];
 		u16 data16;
@@ -113,7 +113,7 @@ struct EffectiveAdressExpression {
 
 struct InstructionOperand {
 	OperandType type;
-	
+
 	union {
 		EffectiveAdressExpression address;
 		RegisterAccess register_access;
@@ -125,9 +125,9 @@ struct InstructionOperand {
 struct Instruction {
 	u32 address;
 	u32 size;
-	
+
 	OperationType operation;
 	u32 flags;
-	
+
 	InstructionOperand operands[2];
 };

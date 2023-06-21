@@ -6,7 +6,7 @@ u32 load_file_to_memory(Memory* memory, char* filename, u32 offset)
 	if (offset < ArrayCount(memory->bytes)) {
 		FILE* fp = {};
 		errno_t err = fopen_s(&fp, filename, "rb");
-		if (err == 0){
+		if (err == 0) {
 			size_t memorySize = ArrayCount(memory->bytes);
 			bytesLoaded = fread(memory->bytes + offset, 1, memorySize - offset, fp);
 			fclose(fp);
