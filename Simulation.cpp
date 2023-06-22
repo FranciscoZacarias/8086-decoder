@@ -1,5 +1,5 @@
 
-void set_flags(s16 result, u8 offset) {
+void set_flags(SimRegister flag_register, s16 result, u8 offset) {
 	printf("  [Flags Set: ");
 
 	if (result == 0) {
@@ -44,6 +44,7 @@ void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand s
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
 	switch (source.type) {
 		case OperandType_Immediate: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
 			if (source.register_access.count == 1) {
 				destinationSimRegister->data8[source.register_access.offset] += source.uImmediate;
 			} else if (source.register_access.count == 2) {
@@ -52,6 +53,8 @@ void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand s
 		} break;
 
 		case OperandType_Register: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
+
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
 
 			// NOTE(fz): It's either 1 or 2 read count, I.e., 8 or 16bit register respectively
@@ -74,6 +77,8 @@ void simulate_sub(SimRegister simRegisters[Register_count], InstructionOperand s
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
 	switch (source.type) {
 		case OperandType_Immediate: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
+
 			if (source.register_access.count == 1) {
 				destinationSimRegister->data8[source.register_access.offset] -= source.uImmediate;
 			} else if (source.register_access.count == 2) {
@@ -82,6 +87,7 @@ void simulate_sub(SimRegister simRegisters[Register_count], InstructionOperand s
 		} break;
 
 		case OperandType_Register: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
 
 			// NOTE(fz): It's either 1 or 2 read count, I.e., 8 or 16bit register respectively
@@ -105,12 +111,14 @@ void simulate_cmp(SimRegister simRegisters[Register_count], InstructionOperand s
 	fprintf(file, " %s: ", get_reg_name(destination.register_access));
 	switch (source.type) {
 		case OperandType_Immediate: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
 			result = (source.register_access.count == 1) ?
 				(destinationSimRegister->data8[source.register_access.offset] - source.uImmediate) : (destinationSimRegister->data16 - source.uImmediate);
 
 		} break;
 
 		case OperandType_Register: {
+			printf("[Register Offset: {Count: %d, Offset: %d}])", source.register_access.count, source.register_access.offset);
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
 
 			// NOTE(fz): It's either 1 or 2 read count, I.e., 8 or 16bit register respectively
@@ -119,7 +127,6 @@ void simulate_cmp(SimRegister simRegisters[Register_count], InstructionOperand s
 
 		} break;
 	}
-
 }
 
 void simulate_instruction(SimRegister simRegisters[Register_count], Instruction instruction, FILE* file) {
