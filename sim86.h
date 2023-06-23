@@ -32,7 +32,7 @@ enum InstructionFlags {
     Inst_Wide    = (1 << 0),
 };
 
-enum RegisterFlags {
+enum RegisterFlags: u8 {
 	Flag_Carry    = (1 << 0), // CF
 	Flag_Parity   = (1 << 1), // PF
 	Flag_CarryAux = (1 << 2), // AF
@@ -80,6 +80,7 @@ enum Register {
 	Register_SI,
 	Register_DI,
 
+	Register_IP,
 	Register_Flags,
 
 	Register_count,

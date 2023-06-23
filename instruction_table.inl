@@ -25,7 +25,7 @@
 #define IMPLICIT_RM(Value)  { Bits_RM,  0, Value }
 
 #define DISP      { Bits_HasDisp,     0, 1 }
-#define ADDR      { Bits_HasDisp,     0, 1 }, { Bits_DispAlwaysW, 0, 1 } 
+#define ADDR      { Bits_HasDisp,     0, 1 }, { Bits_DispAlwaysW, 0, 1 }
 #define DATA      { Bits_HasData,     0, 1 }
 #define DATA_IF_W { Bits_WMakesDataW, 0, 1 }
 #define FLAGS(F)  { F, 0, 1 }
@@ -58,6 +58,7 @@ INSTRUCTION(jp,    { BITS(01111010), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(jo,    { BITS(01110000), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(js,    { BITS(01111000), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(jne,   { BITS(01110101), DISP, FLAGS(Bits_RelJMPDisp) })
+INSTRUCTION(jnz,   { BITS(01110101), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(jnl,   { BITS(01111101), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(jg,    { BITS(01111111), DISP, FLAGS(Bits_RelJMPDisp) })
 INSTRUCTION(jnb,   { BITS(01110011), DISP, FLAGS(Bits_RelJMPDisp) })

@@ -1,23 +1,21 @@
 
 void set_flags(SimRegister* flag_register, s8 result) {
-	printf(" [ RES:(%hhu) Flags Set: ", result);
+	printf(" [Flags Set: ", result);
 
-	if (result == 0) {
-		printf("ZF");
-		flag_register->data16 |= Flag_Zero;
-		flag_register->data16 &= ~(Flag_Carry);
-		flag_register->data16 &= ~(Flag_Sign);
-	} else if (result > 0) {
-		flag_register->data16 &= ~(Flag_Zero);
-		flag_register->data16 &= ~(Flag_Carry);
-		flag_register->data16 &= ~(Flag_Sign);
-	} else if (result < 0) {
-		flag_register->data16 &= ~(Flag_Zero);
-		flag_register->data16 |= Flag_Carry;
-		flag_register->data16 |= Flag_Sign;
-		printf("CF SF");
-	}
-	printf("] ");
+    b32 signBit = (result & 0b10000000) != 0;
+    if (result == 0) {
+        printf("ZF");
+        flag_register->data16 |=   Flag_Zero;
+        flag_register->data16 &= ~(Flag_Sign);
+    } else if (signBit) {
+        flag_register->data16 &= ~(Flag_Zero);
+        flag_register->data16 &= ~(Flag_Sign);
+    } else if (!signBit) {
+        printf("SF");
+        flag_register->data16 &= ~(Flag_Zero);
+        flag_register->data16 |=   Flag_Sign;
+    }
+    printf("] ");
 }
 
 void simulate_mov(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
@@ -44,16 +42,17 @@ void simulate_mov(SimRegister simRegisters[Register_count], InstructionOperand s
 
 void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
 	SimRegister* destinationSimRegister = &simRegisters[destination.register_access.reg];
+	s8 result = 0;
 
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
 	switch (source.type) {
 		case OperandType_Immediate: {
 			if (destination.register_access.count == 1) {
 				destinationSimRegister->data8[destination.register_access.offset] += source.uImmediate;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[destination.register_access.offset]);
+				result = destinationSimRegister->data8[destination.register_access.offset];
 			} else if (destination.register_access.count == 2) {
 				destinationSimRegister->data16 += source.uImmediate;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[1]);
+				result = destinationSimRegister->data16;
 			}
 		} break;
 
@@ -62,29 +61,31 @@ void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand s
 
 			if (destination.register_access.count == 1) {
 				destinationSimRegister->data8[destination.register_access.offset] += sourceSimRegister->data8[source.register_access.offset];
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[destination.register_access.offset]);
+				result = destinationSimRegister->data8[destination.register_access.offset];
 			} else if (destination.register_access.count == 2) {
 				destinationSimRegister->data16 += sourceSimRegister->data16;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[1]);
+				result = destinationSimRegister->data16;
 			}
 		} break;
 	}
 
 	fprintf(file, "0x%04hx (%d)", destinationSimRegister->data16, destinationSimRegister->data16);
+	set_flags(&simRegisters[Register_Flags], result);
 }
 
 void simulate_sub(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
 	SimRegister* destinationSimRegister = &simRegisters[destination.register_access.reg];
+	s8 result = 0;
 
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
 	switch (source.type) {
 		case OperandType_Immediate: {
 			if (destination.register_access.count == 1) {
 				destinationSimRegister->data8[destination.register_access.offset] -= source.uImmediate;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[destination.register_access.offset]);
+				result = destinationSimRegister->data8[destination.register_access.offset];
 			} else if (destination.register_access.count == 2) {
 				destinationSimRegister->data16 -= source.uImmediate;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[1]);
+				result = destinationSimRegister->data16;
 			}
 		} break;
 
@@ -93,17 +94,16 @@ void simulate_sub(SimRegister simRegisters[Register_count], InstructionOperand s
 
 			if (destination.register_access.count == 1) {
 				destinationSimRegister->data8[destination.register_access.offset] -= sourceSimRegister->data8[source.register_access.offset];
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[destination.register_access.offset]);
+				result = destinationSimRegister->data8[destination.register_access.offset];
 			} else if (destination.register_access.count == 2) {
 				destinationSimRegister->data16 -= sourceSimRegister->data16;
-				set_flags(&simRegisters[Register_Flags], destinationSimRegister->data8[1]);
+				result = destinationSimRegister->data16;
 			}
 		} break;
 	}
 
 	fprintf(file, "0x%04hx (%d)", destinationSimRegister->data16, destinationSimRegister->data16);
-
-	// NOTE(fz): If offset is 1, it gets the highest order bit of the first byte, if is 2, it gets the highest order bit of the second byte (the full 16bit register)
+	set_flags(&simRegisters[Register_Flags], result);
 }
 
 void simulate_cmp(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
@@ -134,7 +134,7 @@ void simulate_cmp(SimRegister simRegisters[Register_count], InstructionOperand s
 	set_flags(&simRegisters[Register_Flags], sign_flag);
 }
 
-void simulate_instruction(SimRegister simRegisters[Register_count], Instruction instruction, FILE* file) {
+void simulate_instruction(SimRegister simRegisters[Register_count], Instruction instruction, s32* jump, FILE* file) {
 	InstructionOperand destination = instruction.operands[0];
 	InstructionOperand source      = instruction.operands[1];
 
@@ -156,5 +156,13 @@ void simulate_instruction(SimRegister simRegisters[Register_count], Instruction 
 		case OP_cmp: {
 			simulate_cmp(simRegisters, source, destination, file);
 		} break;
+
+		case OP_jne: {
+			if (!(simRegisters[Register_Flags].data16 & Flag_Zero)) {
+				*jump += destination.sImmediate;
+			}
+		} break;
 	}
+
+	printf(" [IP: %04hx (%d)]", simRegisters[Register_IP].data16, simRegisters[Register_IP].data16);
 }

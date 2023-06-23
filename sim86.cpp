@@ -20,6 +20,7 @@ char const *registrs[] = {
 	{"BP"},
 	{"SI"},
 	{"DI"},
+	{"IP"},
 	{"Flags"},
 };
 
@@ -27,7 +28,12 @@ b32 execute = 0;
 
 Memory* memory;
 
+Instruction instructions[512];
+u32 total_instructions = 0;
+
 SimRegister simulatedRegisters[Register_count];
+
+s32 debug = 0;
 
 void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 	SegmentedAccess position = startPosition;
@@ -35,8 +41,14 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 
 	printf("bits 16\n");
 
+	for(u32 i = 0; i < Register_count; i++) {
+		simulatedRegisters[i].reg    = (Register)i;
+		simulatedRegisters[i].data16 = 0;
+	}
+
 	while(bytesLeft) {
 		Instruction instruction = decode_instruction(memory, &position);
+		instructions[total_instructions++] = instruction;
 
 		if (!instruction.operation) {
 			fprintf(stderr, "ERROR: Unrecognized binary in instruction stream.\n");
@@ -51,14 +63,41 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 		bytesLeft -= instruction.size;
 
 		print_instruction(instruction, stdout);
-		if (execute) {
-			simulate_instruction(simulatedRegisters, instruction, stdout);
-		}
 
-		printf("\n");
+		debug += instruction.size;
+		printf("\tIP: (%d) Size: %d \n", debug - instruction.size, instruction.size);
 	}
 
-	printf("Final Registers:\n");
+	if (execute) {
+		printf("\n");
+		s32 instruction_index = 0;
+		while(1) {
+			s32 jump = 0;
+
+			simulate_instruction(simulatedRegisters, instructions[instruction_index], &jump, stdout);
+
+			// NOTE(fz): I'm assuming the jump has a offset in correct boundries.
+			if (jump < 0) {
+				while (jump < 0) {
+					simulatedRegisters[Register_IP].data16 -= instructions[--instruction_index].size;
+					jump += instructions[instruction_index].size;
+				}
+			} else if (jump > 0) {
+				printf("ERROR: Jumping forward (jump > 0) not handled");
+				break;
+			} else if (jump == 0) {
+				simulatedRegisters[Register_IP].data16 += instructions[instruction_index].size;
+				++instruction_index;
+				if (byteCount <= simulatedRegisters[Register_IP].data16) {
+					break;
+				}
+			}
+
+			printf("\n");
+		}
+	}
+
+	printf("\nFinal Registers:\n");
 	for(int i = 1; i < Register_count; i++) {
 		if (simulatedRegisters[i].reg == Register_Flags) {
 			printf("\tFlags: ");
@@ -109,8 +148,6 @@ int main(int argc, char** argv) {
 
 		run_sim8086(memory, bytesRead, { 0, 0 });
 	}
-
-	free(memory);
 
 	return 0;
 }
