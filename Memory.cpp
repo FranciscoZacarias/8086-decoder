@@ -2,7 +2,7 @@
 u32 load_file_to_memory(Memory* memory, char* filename, u32 offset)
 {
 	u32 bytesLoaded = 0;
-	
+
 	if (offset < ArrayCount(memory->bytes)) {
 		FILE* fp = {};
 		errno_t err = fopen_s(&fp, filename, "rb");
@@ -14,7 +14,7 @@ u32 load_file_to_memory(Memory* memory, char* filename, u32 offset)
 			fprintf(stderr, "ERROR %d: Unable to open file %s\n", err, filename);
 		}
 	}
-	
+
 	return bytesLoaded;
 }
 

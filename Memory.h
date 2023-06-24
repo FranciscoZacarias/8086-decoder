@@ -1,7 +1,7 @@
-#define MEMORY_ACCESS_MASK 0xfffff
+#define MEMORY_ACCESS_MASK 0xffff
 
 struct Memory {
-	u8 bytes[1024*1024];
+	u8 bytes[65536];
 };
 // NOTE(fz): This is a compile-time assertion
 static_assert((ArrayCount(Memory::bytes) - 1) == MEMORY_ACCESS_MASK, "Memory size doesn't match access mask");

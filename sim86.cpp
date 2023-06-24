@@ -74,7 +74,7 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 		while(1) {
 			s32 jump = 0;
 
-			simulate_instruction(simulatedRegisters, instructions[instruction_index], &jump, stdout);
+			simulate_instruction(memory, simulatedRegisters, instructions[instruction_index], &jump, stdout);
 
 			// NOTE(fz): I'm assuming the jump has a offset in correct boundries.
 			if (jump < 0) {

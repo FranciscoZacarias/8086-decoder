@@ -86,20 +86,10 @@ enum Register {
 	Register_count,
 };
 
-struct EffectiveAddressCalculation {
-	EffectiveAddressBase base;
-	s32 displacement;
-};
-
 struct RegisterAccess {
 	Register reg;
 	u8 offset; // How many bytes into the register
 	u8 count;  // How many bytes from the offset
-};
-
-enum RegisterData {
-	RegisterData_LOW = 0,
-	RegisterData_HIGH,
 };
 
 struct SimulatedRegister {
