@@ -47,6 +47,7 @@ enum EffectiveAddressBase {
 	EffectiveAddressBase_BX_DI,
 	EffectiveAddressBase_BP_SI,
 	EffectiveAddressBase_BP_DI,
+	
 	EffectiveAddressBase_SI,
 	EffectiveAddressBase_DI,
 	EffectiveAddressBase_BP,
