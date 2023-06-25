@@ -25,6 +25,7 @@ char const *registrs[] = {
 };
 
 b32 execute = 0;
+b32 dump    = 0;
 
 Memory* memory;
 
@@ -97,6 +98,17 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 		}
 	}
 
+	if (dump) {
+		FILE* file = fopen("C:/Users/frank/workspace/8086/testfiles/data/rgba.data", "wb");
+
+		if (file != NULL) {
+			fwrite(memory->bytes, sizeof(u8), sizeof(memory->bytes), file);
+			fclose(file);
+		} else {
+			printf("Unable to open the file.\n");
+		}
+	}
+
 	printf("\nFinal Registers:\n");
 	for(int i = 1; i < Register_count; i++) {
 		if (simulatedRegisters[i].reg == Register_Flags) {
@@ -125,6 +137,8 @@ int main(int argc, char** argv) {
 
 			if (strcmp((const char*)argv[i], "-exec") == 0) {
 				execute = 1;
+			} else if (strcmp((const char*)argv[i], "-dump") == 0) {
+				dump = 1;
 			} else {
 				fprintf(stderr, "ERROR: Unknown option %s\n", argv[2]);
 				return 1;
