@@ -1,8 +1,11 @@
 
-void set_flags(SimRegister* flag_register, s8 result) {
+////////////
+// NOTE(fz): This simulation will only simulate 16 bit registers
+
+void set_flags(SimRegister* flag_register, s16 result) {
 	printf(" [Flags Set: ", result);
 
-    b32 signBit = (result & 0b10000000) != 0;
+    b32 signBit = (result & 0b1000000000000000) != 0;
     if (result == 0) {
         printf("ZF");
         flag_register->data16 |=   Flag_Zero;
@@ -18,34 +21,69 @@ void set_flags(SimRegister* flag_register, s8 result) {
     printf("] ");
 }
 
-static SimRegister get_sim_register_from_address_base(SimRegister simRegisters[Register_count], EffectiveAddressBase base) {
-	Register reg = Register_None;
-
-	switch(base) {
-		case EffectiveAddressBase_SI: {
-			reg = Register_SI;
-		} break;
-		case EffectiveAddressBase_DI: {
-			reg = Register_DI;
-		} break;
-		case EffectiveAddressBase_BP: {
-			reg = Register_BP;
-		} break;
-		case EffectiveAddressBase_BX: {
-			reg = Register_B;
-		} break;
-	}
-
-	SimRegister simReg = simRegisters[0]; // Register_None...
+static u16 get_simulated_register_data_from_register(SimRegister simRegisters[Register_count], Register reg) {
+	u16 data = 0;
 
 	for(u32 i = 1; i < Register_count-1; i++) {
 		if (simRegisters[i].reg == reg) {
-			simReg = simRegisters[i];
+			data = simRegisters[i].data16;
 			break;
 		}
 	}
 
-	return simReg;
+	return data;
+}
+
+static u16 get_register_data_from_address_base(SimRegister simRegisters[Register_count], EffectiveAddressBase base) {
+	u16 result = 0;
+
+	SimRegister simReg1 = { 0 };
+	SimRegister simReg2 = { 0 };
+
+	switch(base) {
+		case EffectiveAddressBase_SI: {
+			result = get_simulated_register_data_from_register(simRegisters, Register_SI);
+		} break;
+
+		case EffectiveAddressBase_DI: {
+			result = get_simulated_register_data_from_register(simRegisters, Register_DI);
+		} break;
+
+		case EffectiveAddressBase_BP: {
+			result = get_simulated_register_data_from_register(simRegisters, Register_BP);
+		} break;
+
+		case EffectiveAddressBase_BX: {
+			result = get_simulated_register_data_from_register(simRegisters, Register_B);
+		} break;
+
+		case EffectiveAddressBase_BX_SI: {
+			u16 dataB  = get_simulated_register_data_from_register(simRegisters, Register_B);
+			u16 dataSI = get_simulated_register_data_from_register(simRegisters, Register_SI);
+			result = dataB + dataSI;
+		} break;
+
+		case EffectiveAddressBase_BX_DI: {
+			u16 dataB  = get_simulated_register_data_from_register(simRegisters, Register_B);
+			u16 dataDI = get_simulated_register_data_from_register(simRegisters, Register_DI);
+			result = dataB + dataDI;
+		} break;
+
+		case EffectiveAddressBase_BP_SI: {
+			u16 dataBP = get_simulated_register_data_from_register(simRegisters, Register_BP);
+			u16 dataSI = get_simulated_register_data_from_register(simRegisters, Register_SI);
+			result = dataBP + dataSI;
+		} break;
+
+		case EffectiveAddressBase_BP_DI: {
+			u16 dataBP = get_simulated_register_data_from_register(simRegisters, Register_BP);
+			u16 dataDI = get_simulated_register_data_from_register(simRegisters, Register_DI);
+			result = dataBP + dataDI;
+		} break;
+
+	}
+
+	return result;
 }
 
 void simulate_mov(Memory* memory, SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
@@ -57,19 +95,15 @@ void simulate_mov(Memory* memory, SimRegister simRegisters[Register_count], Inst
 
 		// NOTE(fz): Now it's assuming that it's always a 2byte register;
 		EffectiveAdressExpression address = destination.address;
-		SimRegister simRegister = get_sim_register_from_address_base(simRegisters, address.base);
+		u16 data = get_register_data_from_address_base(simRegisters, address.base);
 
-		memory->bytes[simRegister.data16 + address.displacement]     = (source.uImmediate) & 0xFF;
-		memory->bytes[simRegister.data16 + address.displacement + 1] = (source.uImmediate >> 8) & 0xFF;
+		memory->bytes[data + address.displacement]     = (source.uImmediate) & 0xFF;
+		memory->bytes[data + address.displacement + 1] = (source.uImmediate >> 8) & 0xFF;
 
 	} else {
 		switch (source.type) {
 			case OperandType_Immediate: {
-				if (destination.register_access.offset == 0 && destination.register_access.count == 2) {
-					destinationSimRegister->data16 = source.sImmediate;
-				} else {
-					destinationSimRegister->data8[destination.register_access.offset] = source.sImmediate;
-				}
+				destinationSimRegister->data16 = source.sImmediate;
 			} break;
 
 			case OperandType_Register: {
@@ -78,42 +112,32 @@ void simulate_mov(Memory* memory, SimRegister simRegisters[Register_count], Inst
 			} break;
 
 			case OperandType_Memory: {
-				// NOTE(fz): Assuming it's a 2byte register
-				printf("{ memory->bytes[%d] = %d }", source.address.displacement, memory->bytes[source.address.displacement]);
 				destinationSimRegister->data8[0] = memory->bytes[source.address.displacement];
 				destinationSimRegister->data8[1] = memory->bytes[source.address.displacement + 1];
 			} break;
 		}
 	}
+
 	fprintf(file, " %s: 0x%04hx (%d)", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
 }
 
 void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
 	SimRegister* destinationSimRegister = &simRegisters[destination.register_access.reg];
-	s8 result = 0;
+	s16 result = 0;
 
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
+
 	switch (source.type) {
 		case OperandType_Immediate: {
-			if (destination.register_access.count == 1) {
-				destinationSimRegister->data8[destination.register_access.offset] += source.uImmediate;
-				result = destinationSimRegister->data8[destination.register_access.offset];
-			} else if (destination.register_access.count == 2) {
-				destinationSimRegister->data16 += source.uImmediate;
-				result = destinationSimRegister->data16;
-			}
+			destinationSimRegister->data16 += source.uImmediate;
+			result = destinationSimRegister->data16;
 		} break;
 
 		case OperandType_Register: {
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
 
-			if (destination.register_access.count == 1) {
-				destinationSimRegister->data8[destination.register_access.offset] += sourceSimRegister->data8[source.register_access.offset];
-				result = destinationSimRegister->data8[destination.register_access.offset];
-			} else if (destination.register_access.count == 2) {
-				destinationSimRegister->data16 += sourceSimRegister->data16;
-				result = destinationSimRegister->data16;
-			}
+			destinationSimRegister->data16 += sourceSimRegister->data16;
+			result = destinationSimRegister->data16;
 		} break;
 	}
 
@@ -123,63 +147,45 @@ void simulate_add(SimRegister simRegisters[Register_count], InstructionOperand s
 
 void simulate_sub(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
 	SimRegister* destinationSimRegister = &simRegisters[destination.register_access.reg];
-	s8 result = 0;
+	s16 result = 0;
 
 	fprintf(file, " %s: 0x%04hx (%d) -> ", get_reg_name(destination.register_access), destinationSimRegister->data16, destinationSimRegister->data16);
+
 	switch (source.type) {
 		case OperandType_Immediate: {
-			if (destination.register_access.count == 1) {
-				destinationSimRegister->data8[destination.register_access.offset] -= source.uImmediate;
-				result = destinationSimRegister->data8[destination.register_access.offset];
-			} else if (destination.register_access.count == 2) {
-				destinationSimRegister->data16 -= source.uImmediate;
-				result = destinationSimRegister->data16;
-			}
+			destinationSimRegister->data16 -= source.uImmediate;
+			result = destinationSimRegister->data16;
 		} break;
 
 		case OperandType_Register: {
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
 
-			if (destination.register_access.count == 1) {
-				destinationSimRegister->data8[destination.register_access.offset] -= sourceSimRegister->data8[source.register_access.offset];
-				result = destinationSimRegister->data8[destination.register_access.offset];
-			} else if (destination.register_access.count == 2) {
-				destinationSimRegister->data16 -= sourceSimRegister->data16;
-				result = destinationSimRegister->data16;
-			}
+			destinationSimRegister->data16 -= sourceSimRegister->data16;
+			result = destinationSimRegister->data16;
 		} break;
 	}
 
 	fprintf(file, "0x%04hx (%d)", destinationSimRegister->data16, destinationSimRegister->data16);
+
 	set_flags(&simRegisters[Register_Flags], result);
 }
 
 void simulate_cmp(SimRegister simRegisters[Register_count], InstructionOperand source, InstructionOperand destination, FILE* file) {
 	SimRegister* destinationSimRegister = &simRegisters[destination.register_access.reg];
-	s32 result = 0;
+	s16 result = 0;
 
 	switch (source.type) {
 		case OperandType_Immediate: {
-			if (destination.register_access.count == 1) {
-				result = destinationSimRegister->data8[destination.register_access.offset] - source.uImmediate;
-			} else if (destination.register_access.count == 2) {
-				result = destinationSimRegister->data16 - source.uImmediate;
-			}
+			result = destinationSimRegister->data16 - source.uImmediate;
 		} break;
 
 		case OperandType_Register: {
 			SimRegister* sourceSimRegister = &simRegisters[source.register_access.reg];
-
-			if (destination.register_access.count == 1) {
-				result = destinationSimRegister->data8[destination.register_access.offset] - sourceSimRegister->data8[source.register_access.offset];
-			} else if (destination.register_access.count == 2) {
-				result = destinationSimRegister->data16 - sourceSimRegister->data16;
-			}
+			result = destinationSimRegister->data16 - sourceSimRegister->data16;
 		} break;
 	}
 
-	s8 sign_flag = (result > 0) ? 1 : (result < 0) ? -1 : 0;
-	set_flags(&simRegisters[Register_Flags], sign_flag);
+	set_flags(&simRegisters[Register_Flags], result);
 }
 
 void simulate_instruction(Memory* memory, SimRegister simRegisters[Register_count], Instruction instruction, s32* jump, FILE* file) {
