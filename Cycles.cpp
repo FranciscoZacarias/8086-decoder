@@ -1,20 +1,3 @@
-
-// MOV
-// IM  to REG
-// REG to REG
-// MEM to REG
-// REG to MEM
-
-// ADD
-// REG to REG
-// REG to MEM
-// IM  TO REG
-
-struct CycleReference {
-	OperandType operands[2];
-	u32 cycle_count;
-};
-
 function u32 cycles_estimation_table(OperandType source, OperandType destination, OperationType operation) {
 	// NOTE(fz): Effective Address Calculation component (Table 2-20)
 	u32 EA = 0;
@@ -26,7 +9,6 @@ function u32 cycles_estimation_table(OperandType source, OperandType destination
 		{{ OperandType_Register, OperandType_Memory    }, 8 + EA},
 		{{ OperandType_Memory,   OperandType_Register  }, 9 + EA},
 	};
-
 
 	// NOTE(fz): Table 2-21
 	CycleReference add_cycle_table[] = {
