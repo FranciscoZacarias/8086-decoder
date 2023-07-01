@@ -4,11 +4,13 @@
 #include "Text.h"
 #include "Decoder.h"
 #include "Simulation.h"
+#include "Cycles.h"
 
 #include "Memory.cpp"
 #include "Text.cpp"
 #include "Decoder.cpp"
 #include "Simulation.cpp"
+#include "Cycles.cpp"
 
 char const *registrs[] = {
 	{""},
@@ -26,6 +28,7 @@ char const *registrs[] = {
 
 b32 execute = 0;
 b32 dump    = 0;
+b32 cycles  = 0;
 
 Memory* memory;
 
@@ -33,8 +36,6 @@ Instruction instructions[512];
 u32 total_instructions = 0;
 
 SimRegister simulatedRegisters[Register_count];
-
-s32 debug = 0;
 
 void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 	SegmentedAccess position = startPosition;
@@ -61,12 +62,14 @@ void run_sim8086(Memory* memory, u32 byteCount, SegmentedAccess startPosition) {
 			break;
 		}
 
-		bytesLeft -= instruction.size;
+		if (cycles) {
+			estimate_cycles(instruction);
+		}
 
 		print_instruction(instruction, stdout);
+		printf("\n");
 
-		debug += instruction.size;
-		printf("\tIP: (%d) Size: %d \n", debug - instruction.size, instruction.size);
+		bytesLeft -= instruction.size;
 	}
 
 	if (execute) {
@@ -139,6 +142,8 @@ int main(int argc, char** argv) {
 				execute = 1;
 			} else if (strcmp((const char*)argv[i], "-dump") == 0) {
 				dump = 1;
+			} else if (strcmp((const char*)argv[i], "-cycles") == 0) {
+				cycles = 1;
 			} else {
 				fprintf(stderr, "ERROR: Unknown option %s\n", argv[2]);
 				return 1;

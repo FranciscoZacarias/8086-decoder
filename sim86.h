@@ -6,6 +6,10 @@
 
 #define ArrayCount(array) (sizeof(array) / sizeof(array[0]))
 
+#define function static
+#define global   static
+#define local    static
+
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -47,7 +51,7 @@ enum EffectiveAddressBase {
 	EffectiveAddressBase_BX_DI,
 	EffectiveAddressBase_BP_SI,
 	EffectiveAddressBase_BP_DI,
-	
+
 	EffectiveAddressBase_SI,
 	EffectiveAddressBase_DI,
 	EffectiveAddressBase_BP,
